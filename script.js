@@ -1,4 +1,5 @@
 // Cenários de teste
+//--------------------Cenarios Pré Estabelecidos para Teste------------------------------------------
 const cenarios = {
     'serial': {
         nome: 'Execução Serial Simples',
@@ -21,7 +22,9 @@ const cenarios = {
         operacoes: ['w1(x)', 'r2(x)', 'w1(y)', 'r2(y)', 'w2(x)', 'w2(y)', 'c1', 'c2']
     }
 };
+//---------------------------------------------------------------------------------------------------
 
+//----------------------------Variaveis Simulação----------------------------------------------
 // Estado da simulação
 let estadoAtual = {
     transacoes: {},
@@ -30,14 +33,15 @@ let estadoAtual = {
     hi: [],
     passo_atual: 0,
     timestamp_atual: 0,
-    transacoes_abortadas: []
+    transacoes_abortadas: [],
+    operacoes_por_transacao: {} // Rastreia todas as operações de cada transação da HI original
 };
-
 let autoPlay = false;
 let autoInterval = null;
+//---------------------------------------------------------------------------------------------
 
-// Inicializar select com cenários
-function inicializarCenarios() {
+//----------------------------Visual e Interatividade----------------------------------------------
+function inicializarCenarios() { // Inicializar select com cenários
     const select = document.getElementById('scenarioSelect');
     for (const [key, cenario] of Object.entries(cenarios)) {
         const option = document.createElement('option');
@@ -46,12 +50,9 @@ function inicializarCenarios() {
         select.appendChild(option);
     }
 }
-
-// Toggle da seção de entrada personalizada
-function toggleCustomInput() {
+function toggleCustomInput() { // Toggle da seção de entrada personalizada
     const content = document.getElementById('customInputContent');
     const icon = document.getElementById('toggleIcon');
-    
     if (content.style.display === 'none') {
         content.style.display = 'block';
         icon.textContent = '▼';
@@ -60,136 +61,54 @@ function toggleCustomInput() {
         icon.textContent = '▶';
     }
 }
-
-// Adicionar cenário personalizado
-function adicionarCenarioPersonalizado() {
+function adicionarCenarioPersonalizado() { // Adicionar cenário personalizado
     const nome = document.getElementById('customName').value.trim();
     const operacoesTexto = document.getElementById('customOperations').value.trim();
-
     if (!nome) {
         adicionarMensagem('Por favor, digite um nome para o cenário', 'warning');
         return;
     }
-
     if (!operacoesTexto) {
         adicionarMensagem('Por favor, digite as operações', 'warning');
         return;
     }
-
-    // Processar operações (separar por vírgula ou espaço)
-    const operacoes = operacoesTexto
+    const operacoes = operacoesTexto  // Processar operações (separar por vírgula ou espaço)
         .split(/[,\s]+/)
         .map(op => op.trim())
         .filter(op => op.length > 0);
-
     if (operacoes.length === 0) {
         adicionarMensagem('Nenhuma operação válida encontrada', 'warning');
         return;
     }
-
-    // Validar operações
-    const operacoesInvalidas = [];
+    const operacoesInvalidas = []; // Validar operações
     for (const op of operacoes) {
         if (!validarOperacao(op)) {
             operacoesInvalidas.push(op);
         }
     }
-
     if (operacoesInvalidas.length > 0) {
         adicionarMensagem(
             `Operações inválidas: ${operacoesInvalidas.join(', ')}. Use o formato correto (ex: r1(x), w2(y), c3)`,
             'error'
-        );
-        return;
+        );return;
     }
-
-    // Adicionar ao objeto de cenários
-    const chave = 'custom_' + Date.now();
+    const chave = 'custom_' + Date.now();     // Adicionar ao objeto de cenários
     cenarios[chave] = {
         nome: nome,
         operacoes: operacoes
     };
-
-    // Adicionar ao select
-    const select = document.getElementById('scenarioSelect');
+    const select = document.getElementById('scenarioSelect');     // Adicionar ao select
     const option = document.createElement('option');
     option.value = chave;
     option.textContent = `${nome} (Personalizado)`;
     select.appendChild(option);
     select.value = chave;
-
-    // Limpar campos
-    document.getElementById('customName').value = '';
+    document.getElementById('customName').value = '';     // Limpar campos
     document.getElementById('customOperations').value = '';
-
     adicionarMensagem(`Cenário "${nome}" adicionado com sucesso! ${operacoes.length} operação(ões).`, 'success');
 }
-
-// Validar operação
-function validarOperacao(op) {
-    op = op.toLowerCase().trim();
-    
-    // Validar commit: c1, c2, c3, etc.
-    if (/^c\d+$/.test(op)) {
-        return true;
-    }
-    
-    // Validar leitura/escrita: r1(x), w2(y), etc.
-    if (/^[rw]\d+\([a-z]+\)$/.test(op)) {
-        return true;
-    }
-    
-    return false;
-}
-
-// Abrir modal de exemplos
-function abrirModalExemplos() {
-    document.getElementById('examplesModal').classList.add('active');
-}
-
-// Fechar modal de exemplos
-function fecharModalExemplos() {
-    document.getElementById('examplesModal').classList.remove('active');
-}
-
-// Fechar modal ao clicar fora
-window.onclick = function(event) {
-    const modal = document.getElementById('examplesModal');
-    if (event.target === modal) {
-        fecharModalExemplos();
-    }
-}
-
-// Iniciar simulação
-function iniciarSimulacao() {
-    const cenarioKey = document.getElementById('scenarioSelect').value;
-    if (!cenarioKey) {
-        adicionarMensagem('Por favor, selecione um cenário', 'warning');
-        return;
-    }
-
-    const cenario = cenarios[cenarioKey];
-    estadoAtual = {
-        transacoes: {},
-        itens_dados: {},
-        hf: [],
-        hi: cenario.operacoes,
-        passo_atual: 0,
-        timestamp_atual: 0,
-        transacoes_abortadas: []
-    };
-
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('nextBtn').disabled = false;
-    document.getElementById('autoBtn').disabled = false;
-    document.getElementById('resetBtn').disabled = false;
-    document.getElementById('stepInfo').style.display = 'block';
-    
-    atualizarInterface();
-    adicionarMensagem(`Cenário "${cenario.nome}" carregado. Clique em "Próximo Passo" para começar.`, 'info');
-}
-
-// Próximo passo
+function abrirModalExemplos() { document.getElementById('examplesModal').classList.add('active'); } // Abrir modal de exemplos
+function fecharModalExemplos() { document.getElementById('examplesModal').classList.remove('active'); } // Fechar modal de exemplos
 function proximoPasso() {
     if (estadoAtual.passo_atual >= estadoAtual.hi.length) {
         adicionarMensagem('Simulação concluída!', 'success');
@@ -210,9 +129,11 @@ function proximoPasso() {
         document.getElementById('autoBtn').disabled = true;
     }
 }
-
-// Executar automaticamente
-function executarAutomatico() {
+window.onclick = function(event) { // Fechar modal ao clicar fora
+    const modal = document.getElementById('examplesModal');
+    if (event.target === modal) {fecharModalExemplos();}
+}
+function executarAutomatico() { // Executar automaticamente
     if (autoPlay) {
         autoPlay = false;
         clearInterval(autoInterval);
@@ -221,8 +142,7 @@ function executarAutomatico() {
     } else {
         autoPlay = true;
         document.getElementById('autoBtn').textContent = '⏸️ Pausar';
-        document.getElementById('nextBtn').disabled = true;
-        
+        document.getElementById('nextBtn').disabled = true;       
         autoInterval = setInterval(() => {
             if (estadoAtual.passo_atual >= estadoAtual.hi.length) {
                 autoPlay = false;
@@ -230,12 +150,184 @@ function executarAutomatico() {
                 document.getElementById('autoBtn').textContent = '⚡ Auto';
                 document.getElementById('autoBtn').disabled = true;
                 return;
-            }
-            proximoPasso();
+            }proximoPasso();
         }, 1500);
     }
 }
+function processarLeitura(op, transacao, item) { // Processar leitura
+    adicionarMensagem(`🔍 Verificando ${op.string}: TS(T${transacao.id})=${transacao.timestamp}, RTS(${item.nome})=${item.rts}, WTS(${item.nome})=${item.wts}`, 'info');
+    
+    if (transacao.timestamp < item.wts) {
+        adicionarMensagem(
+            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < WTS(${item.wts}) - Leitura muito antiga!`,
+            'error'
+        );
+        abortarTransacao(transacao.id);
+        return;
+    }
+    if (transacao.timestamp > item.rts) {
+        item.rts = transacao.timestamp;
+        adicionarMensagem(
+            `✅ ${op.string} executado: RTS(${item.nome}) atualizado para ${item.rts}`,
+            'success'
+        );
+    } else {
+        adicionarMensagem(
+            `✅ ${op.string} executado: RTS(${item.nome}) mantido em ${item.rts}`,
+            'success'
+        );
+    }
+    estadoAtual.hf.push(op.string);
+    transacao.operacoes.push(op.string);
+}
+// Processar escrita
+function processarEscrita(op, transacao, item) {
+    adicionarMensagem(`🔍 Verificando ${op.string}: TS(T${transacao.id})=${transacao.timestamp}, RTS(${item.nome})=${item.rts}, WTS(${item.nome})=${item.wts}`, 'info');
+    if (transacao.timestamp < item.rts) {
+        adicionarMensagem(
+            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < RTS(${item.rts}) - Escrita muito antiga!`,
+            'error'
+        );
+        abortarTransacao(transacao.id);
+        return;
+    }
+    if (transacao.timestamp < item.wts) {
+        adicionarMensagem(
+            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < WTS(${item.wts}) - Escrita muito antiga!`,
+            'error'
+        );
+        abortarTransacao(transacao.id);
+        return;
+    }
+    item.wts = transacao.timestamp;
+    adicionarMensagem(
+        `✅ ${op.string} executado: WTS(${item.nome}) atualizado para ${item.wts}`,
+        'success'
+    );
+    estadoAtual.hf.push(op.string);
+    transacao.operacoes.push(op.string);
+}
+// Resetar simulação
+function resetarSimulacao() {
+    if (autoPlay) {
+        autoPlay = false;
+        clearInterval(autoInterval);
+        document.getElementById('autoBtn').textContent = '⚡ Auto';
+    }
 
+    estadoAtual = {
+        transacoes: {},
+        itens_dados: {},
+        hf: [],
+        hi: [],
+        passo_atual: 0,
+        timestamp_atual: 0,
+        transacoes_abortadas: [],
+        operacoes_por_transacao: {}
+    };
+
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('nextBtn').disabled = true;
+    document.getElementById('autoBtn').disabled = true;
+    document.getElementById('resetBtn').disabled = true;
+    document.getElementById('stepInfo').style.display = 'none';
+    document.getElementById('messages').innerHTML = '';
+    document.getElementById('progressBar').style.width = '0%';
+
+    atualizarInterface();
+    adicionarMensagem('Simulação resetada. Selecione um novo cenário.', 'info');
+}
+// Atualizar interface
+function atualizarInterface() {
+    // Atualizar progresso
+    const progresso = (estadoAtual.passo_atual / estadoAtual.hi.length) * 100;
+    document.getElementById('progressBar').style.width = progresso + '%';
+
+    // Atualizar informações do passo
+    document.getElementById('stepNumber').textContent = estadoAtual.passo_atual;
+    document.getElementById('totalSteps').textContent = estadoAtual.hi.length;
+    
+    if (estadoAtual.passo_atual < estadoAtual.hi.length) {
+        document.getElementById('currentOperation').textContent = estadoAtual.hi[estadoAtual.passo_atual];
+    } else {
+        document.getElementById('currentOperation').textContent = 'Concluído';
+    }
+
+    // Atualizar HF
+    atualizarHF();
+
+    // Atualizar itens de dados
+    atualizarItensDados();
+
+    // Atualizar transações
+    atualizarTransacoes();
+
+    // Atualizar HI
+    atualizarHI();
+}
+function adicionarMensagem(texto, tipo) { // Adicionar mensagem
+    const container = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `message ${tipo}`;
+    div.textContent = texto;
+    
+    container.insertBefore(div, container.firstChild);
+
+    // Limitar número de mensagens
+    while (container.children.length > 8) {
+        container.removeChild(container.lastChild);
+    }
+}
+
+//---------------------------------------------------------------------------------------------------
+
+// Validar operação
+function validarOperacao(op) {
+    op = op.toLowerCase().trim();     // Validar commit: c1, c2, c3, etc.
+    if (/^c\d+$/.test(op)) {
+        return true;
+    }
+    if (/^[rw]\d+\([a-z]+\)$/.test(op)) {     // Validar leitura/escrita: r1(x), w2(y), etc.
+        return true;
+    }
+    return false;
+}
+// Iniciar simulação
+function iniciarSimulacao() {
+    const cenarioKey = document.getElementById('scenarioSelect').value;
+    if (!cenarioKey) {
+        adicionarMensagem('Por favor, selecione um cenário', 'warning');
+        return;
+    }
+    const cenario = cenarios[cenarioKey];
+    estadoAtual = {
+        transacoes: {},
+        itens_dados: {},
+        hf: [],
+        hi: [...cenario.operacoes],
+        passo_atual: 0,
+        timestamp_atual: 0,
+        transacoes_abortadas: [],
+        operacoes_por_transacao: {}
+    };
+    
+    // Mapear operações por transação
+    cenario.operacoes.forEach(opStr => {
+        const op = analisarOperacao(opStr);
+        if (!estadoAtual.operacoes_por_transacao[op.id_transacao]) {
+            estadoAtual.operacoes_por_transacao[op.id_transacao] = [];
+        }
+        estadoAtual.operacoes_por_transacao[op.id_transacao].push(opStr);
+    });
+    
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('nextBtn').disabled = false;
+    document.getElementById('autoBtn').disabled = false;
+    document.getElementById('resetBtn').disabled = false;
+    document.getElementById('stepInfo').style.display = 'block';
+    atualizarInterface();
+    adicionarMensagem(`Cenário "${cenario.nome}" carregado. Clique em "Próximo Passo" para começar.`, 'info');
+}
 // Processar operação
 function processarOperacao(opStr) {
     const op = analisarOperacao(opStr);
@@ -265,7 +357,6 @@ function processarOperacao(opStr) {
         }
     }
 }
-
 // Analisar operação
 function analisarOperacao(opStr) {
     opStr = opStr.trim().toLowerCase();
@@ -312,69 +403,6 @@ function obterOuCriarItemDado(nome) {
     }
     return estadoAtual.itens_dados[nome];
 }
-
-// Processar leitura
-function processarLeitura(op, transacao, item) {
-    adicionarMensagem(`🔍 Verificando ${op.string}: TS(T${transacao.id})=${transacao.timestamp}, RTS(${item.nome})=${item.rts}, WTS(${item.nome})=${item.wts}`, 'info');
-    
-    if (transacao.timestamp < item.wts) {
-        adicionarMensagem(
-            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < WTS(${item.wts}) - Leitura muito antiga!`,
-            'error'
-        );
-        abortarTransacao(transacao.id);
-        return;
-    }
-
-    if (transacao.timestamp > item.rts) {
-        item.rts = transacao.timestamp;
-        adicionarMensagem(
-            `✅ ${op.string} executado: RTS(${item.nome}) atualizado para ${item.rts}`,
-            'success'
-        );
-    } else {
-        adicionarMensagem(
-            `✅ ${op.string} executado: RTS(${item.nome}) mantido em ${item.rts}`,
-            'success'
-        );
-    }
-
-    estadoAtual.hf.push(op.string);
-    transacao.operacoes.push(op.string);
-}
-
-// Processar escrita
-function processarEscrita(op, transacao, item) {
-    adicionarMensagem(`🔍 Verificando ${op.string}: TS(T${transacao.id})=${transacao.timestamp}, RTS(${item.nome})=${item.rts}, WTS(${item.nome})=${item.wts}`, 'info');
-    
-    if (transacao.timestamp < item.rts) {
-        adicionarMensagem(
-            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < RTS(${item.rts}) - Escrita muito antiga!`,
-            'error'
-        );
-        abortarTransacao(transacao.id);
-        return;
-    }
-
-    if (transacao.timestamp < item.wts) {
-        adicionarMensagem(
-            `❌ ABORTAR T${transacao.id}: TS(${transacao.timestamp}) < WTS(${item.wts}) - Escrita muito antiga!`,
-            'error'
-        );
-        abortarTransacao(transacao.id);
-        return;
-    }
-
-    item.wts = transacao.timestamp;
-    adicionarMensagem(
-        `✅ ${op.string} executado: WTS(${item.nome}) atualizado para ${item.wts}`,
-        'success'
-    );
-
-    estadoAtual.hf.push(op.string);
-    transacao.operacoes.push(op.string);
-}
-
 // Processar commit
 function processarCommit(op) {
     const transacao = obterOuCriarTransacao(op.id_transacao);
@@ -387,7 +415,7 @@ function processarCommit(op) {
 function abortarTransacao(id) {
     const transacao = estadoAtual.transacoes[id];
     
-    adicionarMensagem(`⚠️ T${id} será reiniciada posteriormente com novo timestamp`, 'warning');
+    adicionarMensagem(`⚠️ T${id} abortada - será reiniciada com novo timestamp`, 'warning');
     
     // Remover operações da HF
     const operacoesRemovidas = [];
@@ -411,6 +439,32 @@ function abortarTransacao(id) {
     
     // Recalcular RTS e WTS dos itens de dados baseado no que está na HF
     recalcularTimestampsItensDados();
+    
+    // Coletar operações não processadas da transação abortada
+    const operacoesNaoProcessadas = [];
+    const operacoesTransacao = estadoAtual.operacoes_por_transacao[id] || [];
+    
+    // Identificar quais operações ainda não foram processadas (estão após o passo atual na HI)
+    for (let i = estadoAtual.passo_atual; i < estadoAtual.hi.length; i++) {
+        const opStr = estadoAtual.hi[i];
+        const op = analisarOperacao(opStr);
+        if (op.id_transacao === id) {
+            operacoesNaoProcessadas.push(opStr);
+        }
+    }
+    
+    // Remover operações da transação abortada da HI atual (apenas as não processadas)
+    estadoAtual.hi = estadoAtual.hi.filter((opStr, index) => {
+        if (index < estadoAtual.passo_atual) return true; // Manter operações já processadas
+        const op = analisarOperacao(opStr);
+        return op.id_transacao !== id;
+    });
+    
+    // Adicionar todas as operações da transação de volta ao final da HI
+    if (operacoesTransacao.length > 0) {
+        estadoAtual.hi.push(...operacoesTransacao);
+        adicionarMensagem(`🔄 T${id} re-agendada: ${operacoesTransacao.length} operação(ões) adicionadas ao final da HI`, 'info');
+    }
 }
 
 // Recalcular timestamps dos itens de dados baseado na HF atual
@@ -437,35 +491,6 @@ function recalcularTimestampsItensDados() {
             }
         }
     });
-}
-
-// Atualizar interface
-function atualizarInterface() {
-    // Atualizar progresso
-    const progresso = (estadoAtual.passo_atual / estadoAtual.hi.length) * 100;
-    document.getElementById('progressBar').style.width = progresso + '%';
-
-    // Atualizar informações do passo
-    document.getElementById('stepNumber').textContent = estadoAtual.passo_atual;
-    document.getElementById('totalSteps').textContent = estadoAtual.hi.length;
-    
-    if (estadoAtual.passo_atual < estadoAtual.hi.length) {
-        document.getElementById('currentOperation').textContent = estadoAtual.hi[estadoAtual.passo_atual];
-    } else {
-        document.getElementById('currentOperation').textContent = 'Concluído';
-    }
-
-    // Atualizar HF
-    atualizarHF();
-
-    // Atualizar itens de dados
-    atualizarItensDados();
-
-    // Atualizar transações
-    atualizarTransacoes();
-
-    // Atualizar HI
-    atualizarHI();
 }
 
 // Atualizar HF
@@ -503,14 +528,13 @@ function atualizarItensDados() {
         div.innerHTML = `
             <strong>${item.nome.toUpperCase()}</strong>
             <div>
-                <span class="timestamp-badge">RTS: ${item.rts}</span>
-                <span class="timestamp-badge">WTS: ${item.wts}</span>
+                <span class="timestamp-badge">RTS: ${item.rts}0</span>
+                <span class="timestamp-badge">WTS: ${item.wts}0</span>
             </div>
         `;
         container.appendChild(div);
     });
 }
-
 // Atualizar transações
 function atualizarTransacoes() {
     const container = document.getElementById('transactions');
@@ -576,52 +600,6 @@ function atualizarHI() {
 
     container.appendChild(timeline);
 }
-
-// Adicionar mensagem
-function adicionarMensagem(texto, tipo) {
-    const container = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = `message ${tipo}`;
-    div.textContent = texto;
-    
-    container.insertBefore(div, container.firstChild);
-
-    // Limitar número de mensagens
-    while (container.children.length > 8) {
-        container.removeChild(container.lastChild);
-    }
-}
-
-// Resetar simulação
-function resetarSimulacao() {
-    if (autoPlay) {
-        autoPlay = false;
-        clearInterval(autoInterval);
-        document.getElementById('autoBtn').textContent = '⚡ Auto';
-    }
-
-    estadoAtual = {
-        transacoes: {},
-        itens_dados: {},
-        hf: [],
-        hi: [],
-        passo_atual: 0,
-        timestamp_atual: 0,
-        transacoes_abortadas: []
-    };
-
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('nextBtn').disabled = true;
-    document.getElementById('autoBtn').disabled = true;
-    document.getElementById('resetBtn').disabled = true;
-    document.getElementById('stepInfo').style.display = 'none';
-    document.getElementById('messages').innerHTML = '';
-    document.getElementById('progressBar').style.width = '0%';
-
-    atualizarInterface();
-    adicionarMensagem('Simulação resetada. Selecione um novo cenário.', 'info');
-}
-
 // Inicializar ao carregar
 window.onload = function() {
     inicializarCenarios();

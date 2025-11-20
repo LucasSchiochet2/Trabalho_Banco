@@ -28,11 +28,13 @@ Este trabalho implementa um **simulador de escalonador de transações** utiliza
 - **Status das transações:** Ativa, Committed, Abortada
 - **Rastreamento de operações** executadas por cada transação
 
-#### 2.3 Tratamento de Abortos
+#### 2.3 Tratamento de Abortos e Re-execução Automática
 - **Detecção de conflitos:** Identifica quando operação viola regras do protocolo
 - **Remoção da HF:** Remove todas as operações da transação abortada da História Final
 - **Recálculo de timestamps:** Recalcula RTS e WTS dos itens de dados após aborto
-- **Reinício de transações:** Permite que transação abortada reinicie com novo timestamp
+- **Re-agendamento automático:** Operações da transação abortada são automaticamente adicionadas ao final da HI
+- **Reinício com novo timestamp:** Transação é recriada com timestamp mais recente ao ser re-executada
+- **Rastreamento de operações:** Sistema mantém mapa das operações originais de cada transação para garantir re-execução completa
 
 #### 2.4 Interface Visual Interativa
 - **História Inicial (HI):** Exibe a sequência de operações a serem processadas
@@ -351,33 +353,47 @@ Trabalho_Banco/
 
 **HF:** `r1(x) w1(x) c1 r2(x) c2`
 
-### Exemplo 2: Conflito de Leitura/Escrita
+### Exemplo 2: Conflito de Leitura/Escrita (Com Re-execução Automática)
 
-**HI:** `r1(y), r2(y), w1(y), c2, c1`
+**HI Inicial:** `r1(y), r2(y), w1(y), c2, c1`
 
 **Processamento:**
 1. `r1(y)` → T1 criada com TS=1, RTS(y)=1, executa
 2. `r2(y)` → T2 criada com TS=2, RTS(y)=2, executa
-3. `w1(y)` → ❌ ABORTAR: TS(1) < RTS(2), T1 abortada, remove r1(y) da HF
+3. `w1(y)` → ❌ ABORTAR: TS(1) < RTS(2), T1 abortada
+   - Remove `r1(y)` da HF
+   - Remove `w1(y)` e `c1` da HI (operações não processadas)
+   - Adiciona `r1(y), w1(y), c1` ao final da HI
+   - **Nova HI:** `r1(y), r2(y), w1(y), c2, c1, r1(y), w1(y), c1`
 4. `c2` → T2 committed
-5. `c1` → T1 reinicia com TS=3, committed
+5. `c1` → ⏭️ Ignorado (T1 não existe mais)
+6. `r1(y)` → T1 recriada com TS=3, RTS(y)=3, executa
+7. `w1(y)` → ✅ TS(3) >= RTS(3), WTS(y)=3, executa
+8. `c1` → T1 committed
 
-**HF:** `r2(y) c2 c1`
+**HF Final:** `r2(y), c2, r1(y), w1(y), c1`
 
-### Exemplo 3: Conflito de Escrita
+### Exemplo 3: Conflito de Escrita (Com Re-execução Automática)
 
-**HI:** `w1(z), r2(z), w3(z), w2(z), c1, c3, c2`
+**HI Inicial:** `w1(z), r2(z), w3(z), w2(z), c1, c3, c2`
 
 **Processamento:**
 1. `w1(z)` → T1 criada com TS=1, WTS(z)=1, executa
 2. `r2(z)` → T2 criada com TS=2, RTS(z)=2, executa
 3. `w3(z)` → T3 criada com TS=3, WTS(z)=3, executa
-4. `w2(z)` → ❌ ABORTAR: TS(2) < WTS(3), T2 abortada, remove r2(z) da HF
+4. `w2(z)` → ❌ ABORTAR: TS(2) < WTS(3), T2 abortada
+   - Remove `r2(z)` da HF
+   - Remove `w2(z)` e `c2` da HI (operações não processadas)
+   - Adiciona `r2(z), w2(z), c2` ao final da HI
+   - **Nova HI:** `w1(z), r2(z), w3(z), w2(z), c1, c3, c2, r2(z), w2(z), c2`
 5. `c1` → T1 committed
 6. `c3` → T3 committed
-7. `c2` → T2 reinicia com TS=4, committed
+7. `c2` → ⏭️ Ignorado (T2 não existe mais)
+8. `r2(z)` → T2 recriada com TS=4, RTS(z)=4, executa
+9. `w2(z)` → ✅ TS(4) >= RTS(4) e TS(4) >= WTS(3), WTS(z)=4, executa
+10. `c2` → T2 committed
 
-**HF:** `w1(z) w3(z) c1 c3 c2`
+**HF Final:** `w1(z), w3(z), c1, c3, r2(z), w2(z), c2`
 
 ---
 
