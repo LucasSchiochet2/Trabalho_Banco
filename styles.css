@@ -495,3 +495,42 @@ body {
     margin-bottom: 20px;
     opacity: 0.5;
 }
+
+/* Cabeçalho de mensagens */
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.messages-header h3 {
+    margin: 0;
+}
+
+.btn-historico {
+    padding: 5px 15px;
+    font-size: 0.9em;
+}
+
+/* Modal de histórico */
+.modal-historico {
+    max-width: 800px;
+    max-height: 80vh;
+}
+
+.historico-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f7fafc;
+    border-radius: 8px;
+}
+
+.historico-content .message {
+    margin-bottom: 10px;
+}
+
+.historico-content small {
+    color: #718096;
+}

@@ -60,6 +60,10 @@
                 <div>Processando operação: <span class="operation-display" id="currentOperation">-</span></div>
             </div>
 
+            <div class="messages-header">
+                <h3>📋 Log de Mensagens</h3>
+                <button class="btn btn-secondary btn-historico" onclick="abrirHistoricoCompleto()">📜 Ver Histórico Completo</button>
+            </div>
             <div id="messages"></div>
 
             <div class="grid">
@@ -176,6 +180,17 @@
                     <li>O timestamp é atribuído automaticamente na primeira operação</li>
                 </ul>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Histórico Completo -->
+    <div class="modal" id="historicoModal">
+        <div class="modal-content modal-historico">
+            <div class="modal-header">
+                <h2>📜 Histórico Completo de Mensagens</h2>
+                <button class="modal-close" onclick="fecharHistoricoCompleto()">✕</button>
+            </div>
+            <div id="historicoContent" class="historico-content"></div>
         </div>
     </div>
 

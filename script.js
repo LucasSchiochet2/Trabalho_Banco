@@ -34,7 +34,8 @@ let estadoAtual = {
     passo_atual: 0,
     timestamp_atual: 0,
     transacoes_abortadas: [],
-    operacoes_por_transacao: {} // Rastreia todas as operações de cada transação da HI original
+    operacoes_por_transacao: {}, // Rastreia todas as operações de cada transação da HI original
+    operacoes_abortadas_indices: new Set() // Índices das operações que foram abortadas (para marcação visual)
 };
 let autoPlay = false;
 let autoInterval = null;
@@ -223,7 +224,8 @@ function resetarSimulacao() {
         passo_atual: 0,
         timestamp_atual: 0,
         transacoes_abortadas: [],
-        operacoes_por_transacao: {}
+        operacoes_por_transacao: {},
+        operacoes_abortadas_indices: new Set()
     };
 
     document.getElementById('startBtn').disabled = false;
@@ -234,6 +236,7 @@ function resetarSimulacao() {
     document.getElementById('messages').innerHTML = '';
     document.getElementById('progressBar').style.width = '0%';
 
+    historicoMensagens = []; // Limpar histórico
     atualizarInterface();
     adicionarMensagem('Simulação resetada. Selecione um novo cenário.', 'info');
 }
@@ -265,7 +268,14 @@ function atualizarInterface() {
     // Atualizar HI
     atualizarHI();
 }
+
+// Histórico completo de mensagens
+let historicoMensagens = [];
+
 function adicionarMensagem(texto, tipo) { // Adicionar mensagem
+    // Adicionar ao histórico completo
+    historicoMensagens.push({ texto, tipo, timestamp: new Date().toLocaleTimeString() });
+    
     const container = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${tipo}`;
@@ -273,10 +283,37 @@ function adicionarMensagem(texto, tipo) { // Adicionar mensagem
     
     container.insertBefore(div, container.firstChild);
 
-    // Limitar número de mensagens
-    while (container.children.length > 8) {
+    // Limitar número de mensagens na visualização principal
+    while (container.children.length > 5) {
         container.removeChild(container.lastChild);
     }
+}
+
+function abrirHistoricoCompleto() {
+    document.getElementById('historicoModal').classList.add('active');
+    
+    const container = document.getElementById('historicoContent');
+    container.innerHTML = '';
+    
+    if (historicoMensagens.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #718096;">Nenhuma mensagem ainda</p>';
+        return;
+    }
+    
+    // Mostrar mensagens do mais antigo ao mais recente
+    historicoMensagens.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `message ${msg.tipo}`;
+        div.innerHTML = `<small style="color: #718096;">[${msg.timestamp}]</small> ${msg.texto}`;
+        container.appendChild(div);
+    });
+    
+    // Scroll para o final
+    container.scrollTop = container.scrollHeight;
+}
+
+function fecharHistoricoCompleto() {
+    document.getElementById('historicoModal').classList.remove('active');
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -308,7 +345,8 @@ function iniciarSimulacao() {
         passo_atual: 0,
         timestamp_atual: 0,
         transacoes_abortadas: [],
-        operacoes_por_transacao: {}
+        operacoes_por_transacao: {},
+        operacoes_abortadas_indices: new Set()
     };
     
     // Mapear operações por transação
@@ -440,27 +478,16 @@ function abortarTransacao(id) {
     // Recalcular RTS e WTS dos itens de dados baseado no que está na HF
     recalcularTimestampsItensDados();
     
-    // Coletar operações não processadas da transação abortada
-    const operacoesNaoProcessadas = [];
-    const operacoesTransacao = estadoAtual.operacoes_por_transacao[id] || [];
-    
-    // Identificar quais operações ainda não foram processadas (estão após o passo atual na HI)
-    for (let i = estadoAtual.passo_atual; i < estadoAtual.hi.length; i++) {
-        const opStr = estadoAtual.hi[i];
+    // Marcar operações da transação abortada na HI (para visualização)
+    estadoAtual.hi.forEach((opStr, index) => {
         const op = analisarOperacao(opStr);
         if (op.id_transacao === id) {
-            operacoesNaoProcessadas.push(opStr);
+            estadoAtual.operacoes_abortadas_indices.add(index);
         }
-    }
-    
-    // Remover operações da transação abortada da HI atual (apenas as não processadas)
-    estadoAtual.hi = estadoAtual.hi.filter((opStr, index) => {
-        if (index < estadoAtual.passo_atual) return true; // Manter operações já processadas
-        const op = analisarOperacao(opStr);
-        return op.id_transacao !== id;
     });
     
     // Adicionar todas as operações da transação de volta ao final da HI
+    const operacoesTransacao = estadoAtual.operacoes_por_transacao[id] || [];
     if (operacoesTransacao.length > 0) {
         estadoAtual.hi.push(...operacoesTransacao);
         adicionarMensagem(`🔄 T${id} re-agendada: ${operacoesTransacao.length} operação(ões) adicionadas ao final da HI`, 'info');
@@ -588,7 +615,12 @@ function atualizarHI() {
         const div = document.createElement('div');
         div.className = 'hf-operation';
         
-        if (index < estadoAtual.passo_atual) {
+        // Verificar se esta operação foi abortada
+        if (estadoAtual.operacoes_abortadas_indices.has(index)) {
+            div.style.background = '#f56565';
+            div.style.opacity = '0.6';
+            div.style.textDecoration = 'line-through';
+        } else if (index < estadoAtual.passo_atual) {
             div.style.opacity = '0.5';
         } else if (index === estadoAtual.passo_atual) {
             div.style.background = '#48bb78';
