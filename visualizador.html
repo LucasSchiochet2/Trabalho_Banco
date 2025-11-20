@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Protocolo de Timestamps - Visualização</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Simulador de Protocolo de Timestamps</h1>
+            <p>Visualização Interativa de Controle de Concorrência</p>
+        </div>
+
+        <div class="content">
+            <!-- Seção de Entrada Personalizada -->
+            <div class="custom-input-section">
+                <h3>✏️ Criar História Personalizada</h3>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="customName">Nome do Cenário</label>
+                        <input type="text" id="customName" placeholder="Ex: Meu Teste Personalizado">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="customOperations">Operações (separadas por vírgula ou espaço)</label>
+                        <textarea id="customOperations" placeholder="Ex: r1(x), w1(x), r2(x), w2(x), c1, c2"></textarea>
+                        <div class="input-examples">
+                            <strong>Exemplos:</strong><br>
+                            • <code>r1(x)</code> - Transação 1 lê X<br>
+                            • <code>w2(y)</code> - Transação 2 escreve Y<br>
+                            • <code>c3</code> - Transação 3 faz commit
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="adicionarCenarioPersonalizado()">➕ Adicionar Cenário</button>
+                <button class="btn btn-secondary" onclick="abrirModalExemplos()">📚 Ver Exemplos</button>
+            </div>
+
+            <div class="controls">
+                <select id="scenarioSelect" aria-label="Selecione um cenário" title="Selecione um cenário">
+                    <option value="">Selecione um cenário...</option>
+                </select>
+                <button class="btn btn-primary" id="startBtn" onclick="iniciarSimulacao()">▶️ Iniciar</button>
+                <button class="btn btn-secondary" id="nextBtn" onclick="proximoPasso()" disabled>➡️ Próximo Passo</button>
+                <button class="btn btn-secondary" id="autoBtn" onclick="executarAutomatico()" disabled>⚡ Auto</button>
+                <button class="btn btn-danger" id="resetBtn" onclick="resetarSimulacao()" disabled>🔄 Resetar</button>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <div class="step-info" id="stepInfo" style="display: none;">
+                <h3>Passo <span id="stepNumber">0</span> de <span id="totalSteps">0</span></h3>
+                <div>Processando operação: <span class="operation-display" id="currentOperation">-</span></div>
+            </div>
+
+            <div id="messages"></div>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>📊 História Final (HF)</h3>
+                    <div class="hf-timeline" id="hfTimeline">
+                        <div class="empty-state">
+                            <p>Nenhuma operação executada ainda</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>💾 Itens de Dados</h3>
+                    <div id="dataItems">
+                        <div class="empty-state">
+                            <p>Nenhum item de dado acessado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h3>🔐 Transações Ativas</h3>
+                    <div id="transactions">
+                        <div class="empty-state">
+                            <p>Nenhuma transação iniciada</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📝 História Inicial (HI)</h3>
+                    <div id="initialHistory">
+                        <div class="empty-state">
+                            <p>Selecione um cenário para começar</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #48bb78;"></div>
+                    <span>Commit</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #667eea;"></div>
+                    <span>Ativa</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f56565;"></div>
+                    <span>Abortada</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exemplos -->
+    <div class="modal" id="examplesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📚 Exemplos de Operações</h2>
+                <button class="close-modal" onclick="fecharModalExemplos()">✕</button>
+            </div>
+            <div>
+                <h3>Formato das Operações</h3>
+                <p style="margin-bottom: 15px;">Cada operação deve seguir o formato:</p>
+                
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>Leitura:</strong> <code>r{transação}({item})</code><br>
+                    Exemplo: <code>r1(x)</code> - Transação 1 lê o item X<br><br>
+                    
+                    <strong>Escrita:</strong> <code>w{transação}({item})</code><br>
+                    Exemplo: <code>w2(y)</code> - Transação 2 escreve no item Y<br><br>
+                    
+                    <strong>Commit:</strong> <code>c{transação}</code><br>
+                    Exemplo: <code>c3</code> - Transação 3 faz commit
+                </div>
+
+                <h3>Exemplos Completos</h3>
+                
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Exemplo 1: Execução Serial</strong><br>
+                    <code>r1(x), w1(x), c1, r2(x), c2</code><br>
+                    <small style="color: #718096;">T1 lê e escreve X, depois T2 lê X. Sem conflitos.</small>
+                </div>
+
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Exemplo 2: Conflito de Escrita</strong><br>
+                    <code>w1(z), r2(z), w3(z), w2(z), c1, c3, c2</code><br>
+                    <small style="color: #718096;">T2 será abortada quando tentar escrever após T3.</small>
+                </div>
+
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Exemplo 3: Múltiplas Transações</strong><br>
+                    <code>r1(x), r2(x), r3(x), w1(x), w2(x), c3, c2, c1</code><br>
+                    <small style="color: #718096;">Três transações competindo pelo mesmo recurso.</small>
+                </div>
+
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Exemplo 4: Múltiplos Itens</strong><br>
+                    <code>w1(x), w1(y), r2(x), r2(y), w2(x), w2(y), c1, c2</code><br>
+                    <small style="color: #718096;">Operações em múltiplos itens de dados (X e Y).</small>
+                </div>
+
+                <h3>Dicas</h3>
+                <ul style="margin-left: 20px; color: #4a5568;">
+                    <li>Separe as operações por vírgula ou espaço</li>
+                    <li>Use números para identificar transações (1, 2, 3...)</li>
+                    <li>Use letras para identificar itens de dados (x, y, z, a, b...)</li>
+                    <li>Sempre finalize transações com commit (c1, c2, c3...)</li>
+                    <li>O timestamp é atribuído automaticamente na primeira operação</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
