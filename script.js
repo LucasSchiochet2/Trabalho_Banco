@@ -370,6 +370,12 @@ function iniciarSimulacao() {
 function processarOperacao(opStr) {
     const op = analisarOperacao(opStr);
     
+    // Verificar se a operação atual está marcada em vermelho (abortada)
+    if (estadoAtual.operacoes_abortadas_indices.has(estadoAtual.passo_atual)) {
+        adicionarMensagem(`⏭️ Ignorando ${opStr} - Operação marcada como abortada`, 'warning');
+        return;
+    }
+    
     // Verificar se a transação foi abortada e ainda não foi reiniciada
     const transacaoExistente = estadoAtual.transacoes[op.id_transacao];
     if (transacaoExistente && transacaoExistente.status === 'abortada') {
