@@ -16,27 +16,29 @@
         <div class="content">
             <!-- Seção de Entrada Personalizada -->
             <div class="custom-input-section">
-                <h3>✏️ Criar História Personalizada</h3>
-                <div class="input-group">
-                    <div class="input-field">
-                        <label for="customName">Nome do Cenário</label>
-                        <input type="text" id="customName" placeholder="Ex: Meu Teste Personalizado">
-                    </div>
-                </div>
-                <div class="input-group">
-                    <div class="input-field">
-                        <label for="customOperations">Operações (separadas por vírgula ou espaço)</label>
-                        <textarea id="customOperations" placeholder="Ex: r1(x), w1(x), r2(x), w2(x), c1, c2"></textarea>
-                        <div class="input-examples">
-                            <strong>Exemplos:</strong><br>
-                            • <code>r1(x)</code> - Transação 1 lê X<br>
-                            • <code>w2(y)</code> - Transação 2 escreve Y<br>
-                            • <code>c3</code> - Transação 3 faz commit
+                <h3 onclick="toggleCustomInput()">✏️ Criar História Personalizada <span id="toggleIcon">▼</span></h3>
+                <div id="customInputContent">
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="customName">Nome do Cenário</label>
+                            <input type="text" id="customName" placeholder="Ex: Meu Teste Personalizado">
                         </div>
                     </div>
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="customOperations">Operações (separadas por vírgula ou espaço)</label>
+                            <textarea id="customOperations" placeholder="Ex: r1(x), w1(x), r2(x), w2(x), c1, c2"></textarea>
+                            <div class="input-examples">
+                                <strong>Exemplos:</strong><br>
+                                • <code>r1(x)</code> - Transação 1 lê X<br>
+                                • <code>w2(y)</code> - Transação 2 escreve Y<br>
+                                • <code>c3</code> - Transação 3 faz commit
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="adicionarCenarioPersonalizado()">➕ Adicionar Cenário</button>
+                    <button class="btn btn-secondary" onclick="abrirModalExemplos()">📚 Ver Exemplos</button>
                 </div>
-                <button class="btn btn-primary" onclick="adicionarCenarioPersonalizado()">➕ Adicionar Cenário</button>
-                <button class="btn btn-secondary" onclick="abrirModalExemplos()">📚 Ver Exemplos</button>
             </div>
 
             <div class="controls">
@@ -62,10 +64,10 @@
 
             <div class="grid">
                 <div class="card">
-                    <h3>📊 História Final (HF)</h3>
-                    <div class="hf-timeline" id="hfTimeline">
+                    <h3>📝 História Inicial (HI)</h3>
+                    <div id="initialHistory">
                         <div class="empty-state">
-                            <p>Nenhuma operação executada ainda</p>
+                            <p>Selecione um cenário para começar</p>
                         </div>
                     </div>
                 </div>
@@ -91,10 +93,10 @@
                 </div>
 
                 <div class="card">
-                    <h3>📝 História Inicial (HI)</h3>
-                    <div id="initialHistory">
+                    <h3>📊 História Final (HF)</h3>
+                    <div class="hf-timeline" id="hfTimeline">
                         <div class="empty-state">
-                            <p>Selecione um cenário para começar</p>
+                            <p>Nenhuma operação executada ainda</p>
                         </div>
                     </div>
                 </div>

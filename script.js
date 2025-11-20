@@ -47,6 +47,20 @@ function inicializarCenarios() {
     }
 }
 
+// Toggle da seção de entrada personalizada
+function toggleCustomInput() {
+    const content = document.getElementById('customInputContent');
+    const icon = document.getElementById('toggleIcon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
 // Adicionar cenário personalizado
 function adicionarCenarioPersonalizado() {
     const nome = document.getElementById('customName').value.trim();

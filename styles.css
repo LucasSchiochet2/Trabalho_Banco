@@ -117,6 +117,17 @@ body {
     color: #2d3748;
     margin-bottom: 15px;
     font-size: 1.2em;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.custom-input-section h3:hover {
+    color: #667eea;
+}
+
+.custom-input-section h3 span {
+    font-size: 0.8em;
+    margin-left: 5px;
 }
 
 .input-group {
